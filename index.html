@@ -3,62 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raw Firebase Data</title>
+    <title>Raw JSON Data</title>
     <style>
-        /* Simple styling for the JSON text */
-        pre {
-            font-family: monospace;
-            background-color: #f5f5f5;
+        body {
+            background: #000;
+            color: white;
+            margin: 0;
             padding: 20px;
-            white-space: pre-wrap; /* Ensures long text wraps properly */
+            font-family: monospace;
+        }
+        pre {
+            white-space: pre-wrap;
             word-wrap: break-word;
-            border: 1px solid #ddd;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <pre id="json-output"></pre>
+    <pre id="json-output">Loading...</pre>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
         const firebaseConfig = {
-  apiKey: "AIzaSyBKRIZDQ94sxPZ3da2D9Ucfoxv4q2ZZF5c",
-  authDomain: "are-you-kidding-me.firebaseapp.com",
-  databaseURL: "https://are-you-kidding-me-default-rtdb.firebaseio.com",
-  projectId: "are-you-kidding-me",
-  storageBucket: "are-you-kidding-me.firebasestorage.app",
-  messagingSenderId: "667397289088",
-  appId: "1:667397289088:web:183293a42669f3b28d2265",
-  measurementId: "G-04QEYGW21K"
-};
+            apiKey: "AIzaSyBKRIZDQ94sxPZ3da2D9Ucfoxv4q2ZZF5c",
+            authDomain: "are-you-kidding-me.firebaseapp.com",
+            databaseURL: "https://are-you-kidding-me-default-rtdb.firebaseio.com",
+            projectId: "are-you-kidding-me",
+            storageBucket: "are-you-kidding-me.firebasestorage.app",
+            messagingSenderId: "667397289088",
+            appId: "1:667397289088:web:183293a42669f3b28d2265",
+            measurementId: "G-04QEYGW21K"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Fetch data from Firebase and display it as raw JSON text
         function fetchData() {
-            const dataRef = database.ref("subscribers"); // Path to your data in Firebase
+            const dataRef = database.ref("subscribers"); // Adjust path if needed
             dataRef.once("value")
                 .then((snapshot) => {
+                    const jsonOutput = document.getElementById("json-output");
                     if (snapshot.exists()) {
                         const data = snapshot.val();
-                        // Convert the data to JSON string and display it as raw text
-                        document.getElementById("json-output").textContent = JSON.stringify(data, null, 2);
+                        const jsonString = JSON.stringify(data, null, 2);
+                        jsonOutput.textContent = jsonString;
                     } else {
-                        document.getElementById("json-output").textContent = "No data available";
+                        jsonOutput.textContent = "No data available";
                     }
                 })
                 .catch((error) => {
-                    document.getElementById("json-output").textContent = "Error fetching data: " + error.message;
+                    document.getElementById("json-output").textContent = "Error: " + error.message;
                 });
         }
 
-        // Call the fetchData function on page load
         fetchData();
-    </script>
 
+        // Auto-copy JSON when clicked
+        document.addEventListener("click", function() {
+            const jsonOutput = document.getElementById("json-output").textContent;
+            navigator.clipboard.writeText(jsonOutput).then(() => {
+                console.log("JSON copied to clipboard!");
+            }).catch(err => console.error("Copy failed:", err));
+        });
+    </script>
 </body>
 </html>
