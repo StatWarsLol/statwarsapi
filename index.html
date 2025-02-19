@@ -118,18 +118,22 @@
         }
 
         async function createConnection() {
-            const selectedChannel = document.getElementById('channelSelect').value;
-            if (!selectedChannel) {
-                alert("lol you thought select a channel");
-                return;
-            }
-            const connectionCode = generateCode();
-            const connectionRef = ref(db, `youtubeconnections/${selectedChannel}`);
-            await set(connectionRef, { connection: connectionCode, isConnected: false });
-            localStorage.setItem("connectionCode", connectionCode);
-            localStorage.setItem("loggedInChannel", selectedChannel);
-            checkConnection(selectedChannel);
-        }
+    const selectedChannel = document.getElementById('channelSelect').value;
+    if (!selectedChannel) {
+        alert("Please select a channel");
+        return;
+    }
+    const connectionCode = generateCode();
+    const connectionRef = ref(db, `youtubeconnections/${selectedChannel}`);
+    await set(connectionRef, { connection: connectionCode, isConnected: false });
+    localStorage.setItem("connectionCode", connectionCode);
+    localStorage.setItem("loggedInChannel", selectedChannel);
+    
+    alert(`Type !connect ${connectionCode} into the chat to log in!`);
+    
+    checkConnection(selectedChannel);
+}
+
 
         function checkConnection(channel) {
             const connectionRef = ref(db, `youtubeconnections/${channel}/isConnected`);
