@@ -3,29 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raw JSON Data</title>
+    <title>StatTube Studio [BETA]</title>
+    <link rel="icon" href="waiting.ico" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/themes/odometer-theme-default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/odometer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            background: #000;
-            color: white;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
-            font-family: monospace;
+            padding: 0;
+            background: black;
+            color: white;
+            text-align: center;
         }
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 14px;
+        
+        #dashboardContainer {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 250px;
+            background: #202020;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #sidebar img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: block;
+            margin: 0 auto;
+        }
+
+        #channelName {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab {
+            cursor: pointer;
+            padding: 10px;
+            margin-top: 10px;
+            background: #333;
+            color: white;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .tab:hover {
+            background: #444;
         }
     </style>
-</head>
-<body>
-    <pre id="json-output">Loading...</pre>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBKRIZDQ94sxPZ3da2D9Ucfoxv4q2ZZF5c",
             authDomain: "are-you-kidding-me.firebaseapp.com",
@@ -37,37 +85,181 @@
             measurementId: "G-04QEYGW21K"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        function fetchData() {
-            const dataRef = database.ref("subscribers"); // Adjust path if needed
-            dataRef.once("value")
-                .then((snapshot) => {
-                    const jsonOutput = document.getElementById("json-output");
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const jsonString = JSON.stringify(data, null, 2);
-                        jsonOutput.textContent = jsonString;
-                    } else {
-                        jsonOutput.textContent = "No data available";
-                    }
-                })
-                .catch((error) => {
-                    document.getElementById("json-output").textContent = "Error: " + error.message;
-                });
+        function checkLogin() {
+            const loggedInChannel = localStorage.getItem("loggedInChannel");
+            if (loggedInChannel) {
+                checkConnection(loggedInChannel);
+            } else {
+                loadChannels();
+            }
         }
 
-        fetchData();
+        async function loadChannels() {
+            const dbRef = ref(db, 'subscribers');
+            const snapshot = await get(dbRef);
+            if (snapshot.exists()) {
+                const channels = snapshot.val();
+                const dropdown = document.getElementById('channelSelect');
+                dropdown.innerHTML = "";
+                Object.keys(channels).forEach(channel => {
+                    const option = document.createElement('option');
+                    option.value = channel;
+                    option.textContent = channel;
+                    dropdown.appendChild(option);
+                });
+            }
+        }
 
-        // Auto-copy JSON when clicked
-        document.addEventListener("click", function() {
-            const jsonOutput = document.getElementById("json-output").textContent;
-            navigator.clipboard.writeText(jsonOutput).then(() => {
-                console.log("JSON copied to clipboard!");
-            }).catch(err => console.error("Copy failed:", err));
-        });
+        function generateCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        async function createConnection() {
+            const selectedChannel = document.getElementById('channelSelect').value;
+            if (!selectedChannel) {
+                alert("lol you thought select a channel");
+                return;
+            }
+            const connectionCode = generateCode();
+            const connectionRef = ref(db, `youtubeconnections/${selectedChannel}`);
+            await set(connectionRef, { connection: connectionCode, isConnected: false });
+            localStorage.setItem("connectionCode", connectionCode);
+            localStorage.setItem("loggedInChannel", selectedChannel);
+            checkConnection(selectedChannel);
+        }
+
+        function checkConnection(channel) {
+            const connectionRef = ref(db, `youtubeconnections/${channel}/isConnected`);
+            onValue(connectionRef, (snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    loadStudioPage();
+                }
+            });
+        }
+
+        function loadStudioPage() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'flex';
+            document.getElementById('channelName').textContent = localStorage.getItem("loggedInChannel");
+            loadProfilePicture(localStorage.getItem("loggedInChannel"));
+        }
+
+        async function loadProfilePicture(channel) {
+            const dbRef = ref(db, `subscribers/${channel}/profilePicture`);
+            const snapshot = await get(dbRef);
+            if (snapshot.exists()) {
+                let url = decodeURIComponent(snapshot.val());
+                document.getElementById('profilePic').src = url;
+            }
+        }
+
+        function showLiveSubCount() {
+            document.getElementById('content').innerHTML = `
+                <h2>Live Subscriber Count</h2>
+                <div id="subCount" class="odometer" style="font-size: 60px;">0</div>
+                <canvas id="subscriberGraph" width="400" height="200"></canvas>
+            `;
+
+            window.odometer = new Odometer({
+                el: document.getElementById("subCount"),
+                value: 0,
+                format: '(,ddd)',
+                theme: 'default'
+            });
+
+            createSubscriberGraph();
+            updateSubCount();
+            setInterval(updateSubCount, 5000);
+        }
+
+        let subscriberData = [];
+
+function createSubscriberGraph() {
+    const ctx = document.getElementById('subscriberGraph').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array.from({ length: 10 }, (_, i) => i),
+            datasets: [{
+                label: 'Subscriber Count',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                data: subscriberData,
+                fill: true,
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Subscriber Count'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+  
+    window.subscriberChart = chart;
+}
+
+function updateSubCount() {
+    const channel = localStorage.getItem("loggedInChannel");
+    const dbRef = ref(db, `subscribers/${channel}/subscriberCount`);
+    onValue(dbRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const subscriberCount = snapshot.val();
+            window.odometer.update(subscriberCount);
+            subscriberData.push(subscriberCount);
+
+            if (subscriberData.length > 10) {
+                subscriberData.shift();
+            }
+
+            if (window.subscriberChart) {
+                window.subscriberChart.data.datasets[0].data = subscriberData;
+                window.subscriberChart.update();
+            }
+        }
+    });
+}
+
+
+        window.onload = () => {
+            checkLogin();
+            window.createConnection = createConnection;
+            window.showLiveSubCount = showLiveSubCount;
+        };
     </script>
+</head>
+<body>
+    <div id="loginContainer">
+        <h1>Log In to your channel</h1>
+        <select id="channelSelect"></select>
+        <button onclick="createConnection()">Go</button>
+    </div>
+
+    <div id="dashboardContainer" style="display:none;">
+        <div id="sidebar">
+            <img id="profilePic" src="" alt="Profile Picture">
+            <h2 id="channelName"></h2>
+            <div class="tab" onclick="showLiveSubCount()">Subscriber Count (LIVE) 🔴</div>
+        </div>
+        <div id="content">
+            <h2>Welcome!</h2>
+            <p>This is still in beta... so there is one thing here lul</p>
+        </div>
+    </div>
 </body>
 </html>
