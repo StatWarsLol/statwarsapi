@@ -1,269 +1,546 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StatTube Studio [BETA]</title>
-    <link rel="icon" href="New Project (90).png" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/themes/odometer-theme-default.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/odometer.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: black;
-            color: white;
-            text-align: center;
-        }
-        
-        #dashboardContainer {
-            display: flex;
-            height: 100vh;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StatTube Studio [BETA]</title>
+  <link rel="icon" href="New Project (90).png" type="image/x-icon" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/themes/odometer-theme-default.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/odometer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet"/>
 
-        #sidebar {
-            width: 250px;
-            background: #202020;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: black;
+      color: white;
+      text-align: center;
+    }
 
-        #sidebar img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            display: block;
-            margin: 0 auto;
-        }
+    /* ===== Top "reverse taskbar" ===== */
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #202020;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      z-index: 999;
+    }
+    #topbar .studio-logo {
+      height: 60px;
+    }
+    #topbar .search-bar {
+      flex: 1;
+      max-width: 600px;
+      margin: 0 20px;
+    }
+    #topbar .search-bar input {
+      width: 100%;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: #fff;
+    }
+    #topbar .profile-icon-top {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
 
-        #channelName {
-            font-size: 22px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+    /* Main container below top bar */
+    #dashboardContainer {
+      display: flex;
+      height: calc(100vh - 50px);
+      margin-top: 50px;
+    }
 
-        #content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
+    /* Sidebar styling */
+    #sidebar {
+      width: 250px;
+      background: #202020;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    #sidebar img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: block;
+      margin: 0 auto;
+      object-fit: cover;
+    }
+    #channelName {
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    .tab {
+      cursor: pointer;
+      padding: 10px;
+      margin-top: 10px;
+      background: #333;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+    }
+    .tab:hover {
+      background: #444;
+    }
 
-        .tab {
-            cursor: pointer;
-            padding: 10px;
-            margin-top: 10px;
-            background: #333;
-            color: white;
-            text-align: center;
-            border-radius: 5px;
-        }
+    /* Content area */
+    #content {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
 
-        .tab:hover {
-            background: #444;
-        }
-    </style>
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
+    /* Button styling */
+    .btn {
+      background: #222222;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .btn:hover {
+      background: #333333;
+    }
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKRIZDQ94sxPZ3da2D9Ucfoxv4q2ZZF5c",
-            authDomain: "are-you-kidding-me.firebaseapp.com",
-            databaseURL: "https://are-you-kidding-me-default-rtdb.firebaseio.com",
-            projectId: "are-you-kidding-me",
-            storageBucket: "are-you-kidding-me.firebasestorage.app",
-            messagingSenderId: "667397289088",
-            appId: "1:667397289088:web:183293a42669f3b28d2265",
-            measurementId: "G-04QEYGW21K"
-        };
+    /* Card/grid styling for YouTube Studio-like layout */
+    .card-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-areas: 
+        "latest latest"
+        "analytics grow"
+        "update update";
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: minmax(100px, auto);
+      padding: 10px;
+    }
+    @media (max-width: 900px) {
+      .card-grid {
+        grid-template-areas:
+          "latest"
+          "analytics"
+          "grow"
+          "update";
+        grid-template-columns: 1fr;
+      }
+    }
+    .card {
+      background: #181818;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: left;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .card h3 {
+      margin: 10px 0;
+      font-size: 18px;
+      color: #f1f1f1;
+    }
+    .card p {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #ccc;
+    }
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+    /* Specific card styling */
+    .performance img {
+      display: block;
+      width: 50%;
+      height: auto;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .upload-header {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 5px;
+    }
+    .grow-link {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
 
-        function checkLogin() {
-            const loggedInChannel = localStorage.getItem("loggedInChannel");
-            if (loggedInChannel) {
-                checkConnection(loggedInChannel);
-            } else {
-                loadChannels();
-            }
-        }
+    /* Login container */
+    #loginContainer {
+      margin-top: 70px;
+    }
+  </style>
 
-        async function loadChannels() {
-            const dbRef = ref(db, 'subscribers');
-            const snapshot = await get(dbRef);
-            if (snapshot.exists()) {
-                const channels = snapshot.val();
-                const dropdown = document.getElementById('channelSelect');
-                dropdown.innerHTML = "";
-                Object.keys(channels).forEach(channel => {
-                    const option = document.createElement('option');
-                    option.value = channel;
-                    option.textContent = channel;
-                    dropdown.appendChild(option);
-                });
-            }
-        }
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-database.js";
 
-        function generateCode() {
-            return Math.floor(100000 + Math.random() * 900000).toString();
-        }
+    const firebaseConfig = {
+      apiKey: "AIzaSyBKRIZDQ94sxPZ3da2D9Ucfoxv4q2ZZF5c",
+      authDomain: "are-you-kidding-me.firebaseapp.com",
+      databaseURL: "https://are-you-kidding-me-default-rtdb.firebaseio.com",
+      projectId: "are-you-kidding-me",
+      storageBucket: "are-you-kidding-me.firebasestorage.app",
+      messagingSenderId: "667397289088",
+      appId: "1:667397289088:web:183293a42669f3b28d2265",
+      measurementId: "G-04QEYGW21K"
+    };
 
-        async function createConnection() {
-    const selectedChannel = document.getElementById('channelSelect').value;
-    if (!selectedChannel) {
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const uploadsApp = initializeApp({ databaseURL: "https://uploads-stattube-default-rtdb.firebaseio.com" }, "uploadsApp");
+    const uploadsDb = getDatabase(uploadsApp);
+
+    function checkLogin() {
+      const loggedInChannel = localStorage.getItem("loggedInChannel");
+      if (loggedInChannel) {
+        checkConnection(loggedInChannel);
+      } else {
+        loadChannels();
+      }
+    }
+
+    async function loadChannels() {
+      const dbRef = ref(db, 'subscribers');
+      const snapshot = await get(dbRef);
+      if (snapshot.exists()) {
+        const channels = snapshot.val();
+        const dropdown = document.getElementById('channelSelect');
+        dropdown.innerHTML = "";
+        Object.keys(channels).forEach(channel => {
+          const option = document.createElement('option');
+          option.value = channel;
+          option.textContent = channel;
+          dropdown.appendChild(option);
+        });
+      }
+    }
+
+    function generateCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    async function createConnection() {
+      const selectedChannel = document.getElementById('channelSelect').value;
+      if (!selectedChannel) {
         alert("Please select a channel");
         return;
+      }
+      const connectionCode = generateCode();
+      const connectionRef = ref(db, `youtubeconnections/${selectedChannel}`);
+      await set(connectionRef, { connection: connectionCode, isConnected: false });
+      localStorage.setItem("connectionCode", connectionCode);
+      localStorage.setItem("loggedInChannel", selectedChannel);
+      alert(`Type !connect ${connectionCode} into the chat to log in!`);
+      checkConnection(selectedChannel);
     }
-    const connectionCode = generateCode();
-    const connectionRef = ref(db, `youtubeconnections/${selectedChannel}`);
-    await set(connectionRef, { connection: connectionCode, isConnected: false });
-    localStorage.setItem("connectionCode", connectionCode);
-    localStorage.setItem("loggedInChannel", selectedChannel);
-    
-    alert(`Type !connect ${connectionCode} into the chat to log in!`);
-    
-    checkConnection(selectedChannel);
-}
 
-
-        function checkConnection(channel) {
-            const connectionRef = ref(db, `youtubeconnections/${channel}/isConnected`);
-            onValue(connectionRef, (snapshot) => {
-                if (snapshot.exists() && snapshot.val() === true) {
-                    loadStudioPage();
-                }
-            });
+    function checkConnection(channel) {
+      const connectionRef = ref(db, `youtubeconnections/${channel}/isConnected`);
+      onValue(connectionRef, (snapshot) => {
+        if (snapshot.exists() && snapshot.val() === true) {
+          loadStudioPage();
         }
+      });
+    }
 
-        function loadStudioPage() {
-            document.getElementById('loginContainer').style.display = 'none';
-            document.getElementById('dashboardContainer').style.display = 'flex';
-            document.getElementById('channelName').textContent = localStorage.getItem("loggedInChannel");
-            loadProfilePicture(localStorage.getItem("loggedInChannel"));
+    function loadStudioPage() {
+      document.getElementById('loginContainer').style.display = 'none';
+      document.getElementById('studioUI').style.display = 'block';
+      const channel = localStorage.getItem("loggedInChannel");
+      document.getElementById('channelName').textContent = channel;
+      loadProfilePicture(channel);
+      showChannelDashboard();
+    }
+
+    async function loadProfilePicture(channel) {
+      const dbRef = ref(db, `subscribers/${channel}/profilePicture`);
+      const snapshot = await get(dbRef);
+      if (snapshot.exists()) {
+        let url = decodeURIComponent(snapshot.val());
+        document.getElementById('profilePicSide').src = url;
+        document.getElementById('profilePicTop').src = url;
+      }
+    }
+
+    async function showChannelDashboard() {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = `
+        <h2>Dashboard</h2>
+        <div class="card-grid">
+          <div class="card performance" style="grid-area: latest;">
+            <p class="upload-header">How your latest upload is doing</p>
+            <img src="thumbnail.png" alt="Upload Thumbnail" />
+            <h3 id="latestUploadTitle">Latest upload performance</h3>
+            <p id="latestUploadInfo">Loading latest upload...</p>
+          </div>
+          <div class="card analytics" style="grid-area: analytics;">
+            <h3>Channel analytics</h3>
+            <p style="font-size: 24px;">
+              <strong id="dashboardSubs">0</strong> subs
+            </p>
+            <p>Views: <span id="dashboardViews">0</span></p>
+            <button class="btn" onclick="showLiveSubCount()">Go to live subscribers</button>
+          </div>
+          <div class="card ideas" style="grid-area: grow;">
+            <h3>Ready to grow?</h3>
+            <p style="font-size: 12px; color: #ccc;">
+              Want to grow your channel right now? Click on this link to start publishing on StatTube!
+              <a href="https://www.youtube.com/watch?v=FLh31OnhI4Y&ab_channel=StatWars" class="grow-link" target="_blank">Start Growing</a>
+            </p>
+          </div>
+          <div class="card insider" style="grid-area: update;">
+            <h3>New StatTube update!</h3>
+            <p>Check out the latest features and improvements now available on StatTube Studio.</p>
+            <p style="font-size: 12px; color: #ccc;">
+              For 1.31, StatTube Studio is revamping with a new look! New features, such as the dashboard and Content pages, were released!
+            </p>
+          </div>
+        </div>
+      `;
+
+      const channel = localStorage.getItem("loggedInChannel");
+      if (!channel) return;
+
+      const subsRef = ref(db, `subscribers/${channel}/subscriberCount`);
+      onValue(subsRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const subs = Number(snapshot.val());
+          document.getElementById("dashboardSubs").textContent = subs.toLocaleString();
         }
+      });
 
-        async function loadProfilePicture(channel) {
-            const dbRef = ref(db, `subscribers/${channel}/profilePicture`);
-            const snapshot = await get(dbRef);
-            if (snapshot.exists()) {
-                let url = decodeURIComponent(snapshot.val());
-                document.getElementById('profilePic').src = url;
+      const viewsRef = ref(db, `subscribers/${channel}/userViews`);
+      onValue(viewsRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const views = Number(snapshot.val());
+          document.getElementById("dashboardViews").textContent = views.toLocaleString();
+        }
+      });
+
+      updateLatestUploadPerformance(channel);
+    }
+
+    async function updateLatestUploadPerformance(channel) {
+      const uploadsRef = ref(uploadsDb, `uploads/${channel}`);
+      const snapshot = await get(uploadsRef);
+      let latestUpload = null;
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        Object.keys(data).forEach(videoTitle => {
+          const videoData = data[videoTitle];
+          if (videoData.timestamp) {
+            const timestamp = new Date(videoData.timestamp).getTime();
+            if (!latestUpload || timestamp > latestUpload.timestamp) {
+              latestUpload = {
+                title: videoTitle,
+                views: videoData.views || 0,
+                timestamp: timestamp
+              };
             }
-        }
+          }
+        });
+      }
+      const titleEl = document.getElementById("latestUploadTitle");
+      const performanceEl = document.getElementById("latestUploadInfo");
+      if (latestUpload) {
+        titleEl.textContent = latestUpload.title;
+        performanceEl.textContent = `${Number(latestUpload.views).toLocaleString()} views`;
+      } else {
+        titleEl.textContent = "Latest upload performance";
+        performanceEl.textContent = "No uploads yet.";
+      }
+    }
 
-        function showLiveSubCount() {
-            document.getElementById('content').innerHTML = `
-                <h2>Live Subscriber Count</h2>
-                <div id="subCount" class="odometer" style="font-size: 60px;">0</div>
-                <canvas id="subscriberGraph" width="400" height="200"></canvas>
-            `;
+    function showLiveSubCount() {
+      const contentDiv = document.getElementById('content');
+      contentDiv.innerHTML = `
+        <h2>Live Subscriber Count</h2>
+        <div id="subCount" class="odometer" style="font-size: 60px;">0</div>
+        <canvas id="subscriberGraph" width="400" height="200"></canvas>
+      `;
+      window.odometer = new Odometer({
+        el: document.getElementById("subCount"),
+        value: 0,
+        format: '(,ddd)',
+        theme: 'default'
+      });
+      createSubscriberGraph();
+      updateSubCount();
+      setInterval(updateSubCount, 5000);
+    }
 
-            window.odometer = new Odometer({
-                el: document.getElementById("subCount"),
-                value: 0,
-                format: '(,ddd)',
-                theme: 'default'
-            });
-
-            createSubscriberGraph();
-            updateSubCount();
-            setInterval(updateSubCount, 5000);
-        }
-
-        let subscriberData = [];
-
-function createSubscriberGraph() {
-    const ctx = document.getElementById('subscriberGraph').getContext('2d');
-    const chart = new Chart(ctx, {
+    let subscriberData = [];
+    function createSubscriberGraph() {
+      const ctx = document.getElementById('subscriberGraph').getContext('2d');
+      const chart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: Array.from({ length: 10 }, (_, i) => i),
-            datasets: [{
-                label: 'Subscriber Count',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                data: subscriberData,
-                fill: true,
-            }]
+          labels: Array.from({ length: 10 }, (_, i) => i),
+          datasets: [{
+            label: 'Subscriber Count',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            data: subscriberData,
+            fill: true,
+          }]
         },
         options: {
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Time'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Subscriber Count'
-                    },
-                    beginAtZero: true
-                }
-            }
+          scales: {
+            x: { title: { display: true, text: 'Time' } },
+            y: { title: { display: true, text: 'Subscriber Count' }, beginAtZero: true }
+          }
         }
-    });
+      });
+      window.subscriberChart = chart;
+    }
 
-  
-    window.subscriberChart = chart;
-}
-
-function updateSubCount() {
-    const channel = localStorage.getItem("loggedInChannel");
-    const dbRef = ref(db, `subscribers/${channel}/subscriberCount`);
-    onValue(dbRef, (snapshot) => {
+    function updateSubCount() {
+      const channel = localStorage.getItem("loggedInChannel");
+      const dbRef = ref(db, `subscribers/${channel}/subscriberCount`);
+      onValue(dbRef, (snapshot) => {
         if (snapshot.exists()) {
-            const subscriberCount = snapshot.val();
-            window.odometer.update(subscriberCount);
-            subscriberData.push(subscriberCount);
-
-            if (subscriberData.length > 10) {
-                subscriberData.shift();
-            }
-
-            if (window.subscriberChart) {
-                window.subscriberChart.data.datasets[0].data = subscriberData;
-                window.subscriberChart.update();
-            }
+          const subscriberCount = Number(snapshot.val());
+          window.odometer.update(subscriberCount);
+          subscriberData.push(subscriberCount);
+          if (subscriberData.length > 10) { subscriberData.shift(); }
+          if (window.subscriberChart) {
+            window.subscriberChart.data.datasets[0].data = subscriberData;
+            window.subscriberChart.update();
+          }
         }
-    });
-}
+      });
+    }
 
+    let videoOdometers = {};
+    let videoIdMapping = {};
+    async function showYourContent() {
+      const creator = localStorage.getItem("loggedInChannel");
+      if (!creator) {
+        alert("No creator is logged in.");
+        return;
+      }
+      const contentDiv = document.getElementById("content");
+      contentDiv.innerHTML = `<h2>Your Content</h2><p>Loading...</p>`;
+      try {
+        const uploadsRef = ref(uploadsDb, `uploads/${creator}`);
+        const snapshot = await get(uploadsRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          let html = `<h2>Your Content</h2>`;
+          html += `<div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));">`;
+          videoOdometers = {};
+          videoIdMapping = {};
+          let index = 0;
+          Object.keys(data).forEach(videoTitle => {
+            const videoData = data[videoTitle];
+            let timestampStr = "N/A";
+            if (videoData.timestamp) {
+              const d = new Date(videoData.timestamp);
+              timestampStr = isNaN(d.getTime()) ? "N/A" : d.toLocaleString();
+            }
+            const views = (videoData.views !== undefined) ? videoData.views : 0;
+            const command = videoData.command ?? "N/A";
+            const message = videoData.message ?? "N/A";
+            const viewId = "views_" + index;
+            videoIdMapping[viewId] = videoTitle;
+            html += `
+              <div class="card">
+                <h3>${videoTitle}</h3>
+                <p><strong>Command:</strong> ${command}</p>
+                <p><strong>Message:</strong> ${message}</p>
+                <p><strong>Timestamp:</strong> ${timestampStr}</p>
+                <p><strong>Views:</strong> <span id="${viewId}" class="odometer" style="display:inline;">${views}</span></p>
+              </div>
+            `;
+            index++;
+          });
+          html += `</div>`;
+          contentDiv.innerHTML = html;
 
-        window.onload = () => {
-            checkLogin();
-            window.createConnection = createConnection;
-            window.showLiveSubCount = showLiveSubCount;
-        };
-    </script>
+          Object.keys(videoIdMapping).forEach(viewId => {
+            const videoTitle = videoIdMapping[viewId];
+            const viewElement = document.getElementById(viewId);
+            const initialViews = data[videoTitle].views ?? 0;
+            videoOdometers[viewId] = new Odometer({
+              el: viewElement,
+              value: initialViews,
+              format: '(,ddd)',
+              theme: 'default'
+            });
+          });
+
+          setInterval(() => {
+            Object.keys(videoIdMapping).forEach(async viewId => {
+              const videoTitle = videoIdMapping[viewId];
+              const viewRef = ref(uploadsDb, `uploads/${creator}/${videoTitle}/views`);
+              const viewSnapshot = await get(viewRef);
+              if (viewSnapshot.exists()) {
+                const newViews = viewSnapshot.val();
+                if (videoOdometers[viewId]) {
+                  videoOdometers[viewId].update(newViews);
+                }
+              }
+            });
+          }, 5000);
+        } else {
+          contentDiv.innerHTML = `<h2>Your Content</h2><p>Looks like ${creator} doesn't have any uploads right now. Change that at <a href="https://www.youtube.com/@SWFYSCOfficial" target="_blank">https://www.youtube.com/@SWFYSCOfficial</a>!</p>`;
+        }
+      } catch (error) {
+        contentDiv.innerHTML = `<h2>Your Content</h2><p>Error fetching data: ${error.message}</p>`;
+      }
+    }
+
+    window.onload = () => {
+      checkLogin();
+      window.createConnection = createConnection;
+      window.showChannelDashboard = showChannelDashboard;
+      window.showLiveSubCount = showLiveSubCount;
+      window.showYourContent = showYourContent;
+    };
+  </script>
 </head>
 <body>
-    <div id="loginContainer">
-        <h1>Log In to your channel</h1>
-        <select id="channelSelect"></select>
-        <button onclick="createConnection()">Go</button>
+  <div id="studioUI" style="display: none;">
+    <div id="topbar">
+      <img src="studiologo.png" alt="Studio Logo" class="studio-logo" />
+      <div class="search-bar">
+        <input type="text" placeholder="this does nothing yet :(" />
+      </div>
+      <img id="profilePicTop" src="" alt="Profile Picture" class="profile-icon-top" />
     </div>
-
-    <div id="dashboardContainer" style="display:none;">
-        <div id="sidebar">
-            <img id="profilePic" src="" alt="Profile Picture">
-            <h2 id="channelName"></h2>
-            <div class="tab" onclick="showLiveSubCount()">Subscriber Count (LIVE) 🔴</div>
-        </div>
-        <div id="content">
-            <h2>Welcome!</h2>
-            <p>This is still in beta... so there is one thing here lul</p>
-        </div>
+    <div id="dashboardContainer">
+      <div id="sidebar">
+        <img id="profilePicSide" src="" alt="Profile Picture" />
+        <h2 id="channelName"></h2>
+        <div class="tab" onclick="showChannelDashboard()">Dashboard</div>
+        <div class="tab" onclick="showLiveSubCount()">Subscriber Count (LIVE) 🔴</div>
+        <div class="tab" onclick="showYourContent()">Your Content</div>
+      </div>
+      <div id="content">
+      </div>
     </div>
+  </div>
+  <div id="loginContainer">
+    <h1>Log In to your channel</h1>
+    <select id="channelSelect"></select>
+    <button class="btn" onclick="createConnection()">Go</button>
+  </div>
 </body>
 </html>
