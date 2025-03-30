@@ -9,24 +9,49 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/odometer.js/0.4.8/odometer.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet"/>
-
   <style>
+    /* Define default (dark theme) CSS variables */
+    :root {
+      --bg-color: black;
+      --text-color: white;
+      --topbar-bg: #202020;
+      --sidebar-bg: #202020;
+      --card-bg: #181818;
+      --card-border: #333;
+      --dropdown-bg: #202020;
+      --dropdown-text: white;
+      --input-bg: #333;
+      --input-text: white;
+    }
+    /* Light theme overrides */
+    body.light-theme {
+      --bg-color: #f5f5f5;
+      --text-color: #000;
+      --topbar-bg: #fff;
+      --sidebar-bg: #fff;
+      --card-bg: #fff;
+      --card-border: #ccc;
+      --dropdown-bg: #fff;
+      --dropdown-text: #000;
+      --input-bg: #eee;
+      --input-text: #000;
+    }
     body {
       font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
-      background: black;
-      color: white;
+      background: var(--bg-color);
+      color: var(--text-color);
       text-align: center;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-
     /* ===== Top "reverse taskbar" ===== */
     #topbar {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
-      background: #202020;
+      background: var(--topbar-bg);
       height: 50px;
       display: flex;
       align-items: center;
@@ -47,38 +72,107 @@
       padding: 6px 10px;
       border: none;
       border-radius: 4px;
-      background: #333;
-      color: #fff;
+      background: var(--input-bg);
+      color: var(--input-text);
     }
-    #topbar .profile-icon-top {
+    /* Profile container in topbar */
+    .profile-container {
+      position: relative;
+      display: inline-block;
+    }
+    .profile-icon-top {
       width: 40px;
       height: 40px;
       border-radius: 50%;
       object-fit: cover;
+      cursor: pointer;
     }
-
-    /* Main container below top bar */
+    /* Dropdown styles for topbar */
+    #profileDropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      margin-top: 10px;
+      background: var(--dropdown-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      width: 200px;
+      text-align: left;
+      z-index: 1000;
+    }
+    .dropdown-item {
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      color: var(--dropdown-text);
+    }
+    .dropdown-item:hover {
+      background: var(--card-border);
+    }
+    .dropdown-icon {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      display: inline-block;
+    }
+    /* ===== Studio UI Layout ===== */
+    #studioUI {
+      display: none;
+    }
     #dashboardContainer {
       display: flex;
       height: calc(100vh - 50px);
       margin-top: 50px;
     }
-
-    /* Sidebar styling */
+    /* Sidebar styling (left side) */
     #sidebar {
       width: 250px;
-      background: #202020;
-      color: white;
+      background: var(--sidebar-bg);
+      color: var(--text-color);
       padding: 20px;
       text-align: center;
     }
-    #sidebar img {
+    /* Sidebar profile with overlay effect */
+    .sidebar-profile-wrapper {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .sidebar-profile-wrapper a {
+      text-decoration: none;
+      color: inherit;
+    }
+    .sidebar-profile-wrapper img {
       width: 120px;
       height: 120px;
       border-radius: 50%;
+      object-fit: cover;
       display: block;
       margin: 0 auto;
-      object-fit: cover;
+    }
+    .sidebar-profile-wrapper .overlay {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-profile-wrapper:hover .overlay {
+      opacity: 1;
+    }
+    .sidebar-profile-wrapper .overlay svg {
+      width: 30px;
+      height: 30px;
+      fill: white;
     }
     #channelName {
       font-size: 22px;
@@ -89,27 +183,26 @@
       cursor: pointer;
       padding: 10px;
       margin-top: 10px;
-      background: #333;
-      color: white;
+      background: var(--card-bg);
+      color: var(--text-color);
       text-align: center;
       border-radius: 5px;
+      border: 1px solid var(--card-border);
     }
     .tab:hover {
-      background: #444;
+      background: var(--card-border);
     }
-
     /* Content area */
     #content {
       flex-grow: 1;
       padding: 20px;
       overflow-y: auto;
     }
-
     /* Button styling */
     .btn {
-      background: #222222;
-      color: white;
-      border: none;
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--card-border);
       border-radius: 4px;
       padding: 10px 20px;
       font-size: 14px;
@@ -117,10 +210,9 @@
       transition: background 0.3s ease;
     }
     .btn:hover {
-      background: #333333;
+      background: var(--card-border);
     }
-
-    /* Card/grid styling for YouTube Studio-like layout */
+    /* Card/grid styling for dashboard */
     .card-grid {
       display: grid;
       gap: 20px;
@@ -143,8 +235,8 @@
       }
     }
     .card {
-      background: #181818;
-      border: 1px solid #333;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 15px;
       text-align: left;
@@ -153,15 +245,13 @@
     .card h3 {
       margin: 10px 0;
       font-size: 18px;
-      color: #f1f1f1;
+      color: var(--text-color);
     }
     .card p {
       margin: 5px 0;
       font-size: 14px;
-      color: #ccc;
+      color: var(--text-color);
     }
-
-    /* Specific card styling */
     .performance img {
       display: block;
       width: 50%;
@@ -171,18 +261,61 @@
     }
     .upload-header {
       font-size: 14px;
-      color: #ccc;
       margin-bottom: 5px;
+      color: var(--text-color);
     }
     .grow-link {
       color: blue;
       text-decoration: underline;
       cursor: pointer;
     }
-
     /* Login container */
     #loginContainer {
       margin-top: 70px;
+    }
+    /* ===== Code Modal Styles ===== */
+    #codeModal {
+      display: none;
+      position: fixed;
+      z-index: 1500;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+    }
+    #codeModal .modal-content {
+      background: var(--card-bg);
+      padding: 20px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    #codeModal .code-box {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 15px 0;
+      background: var(--sidebar-bg);
+      padding: 10px;
+      border-radius: 4px;
+      user-select: all;
+    }
+    #codeModal .copy-btn {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #codeModal .instructions {
+      font-size: 12px;
+      color: var(--text-color);
     }
   </style>
 
@@ -203,9 +336,44 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
     const uploadsApp = initializeApp({ databaseURL: "https://uploads-stattube-default-rtdb.firebaseio.com" }, "uploadsApp");
     const uploadsDb = getDatabase(uploadsApp);
+
+    // Theme handling: default to dark if not stored.
+    let currentTheme = localStorage.getItem("theme") || "dark";
+    applyTheme(currentTheme);
+
+    function applyTheme(theme) {
+      if (theme === "light") {
+        document.body.classList.add("light-theme");
+        document.getElementById("themeText").textContent = "Switch Themes (Current: Light Mode)";
+      } else {
+        document.body.classList.remove("light-theme");
+        document.getElementById("themeText").textContent = "Switch Themes (Current: Dark Mode)";
+      }
+    }
+
+    function toggleTheme() {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      localStorage.setItem("theme", currentTheme);
+      applyTheme(currentTheme);
+      document.getElementById("profileDropdown").style.display = "none";
+    }
+
+    function toggleProfileDropdown() {
+      const dropdown = document.getElementById("profileDropdown");
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+
+    // Hide dropdown if clicking outside the profile container.
+    window.onclick = function(event) {
+      if (!event.target.closest('.profile-container')) {
+        const dropdown = document.getElementById("profileDropdown");
+        if (dropdown) {
+          dropdown.style.display = "none";
+        }
+      }
+    };
 
     function checkLogin() {
       const loggedInChannel = localStorage.getItem("loggedInChannel");
@@ -267,6 +435,8 @@
       document.getElementById('channelName').textContent = channel;
       loadProfilePicture(channel);
       showChannelDashboard();
+      // Update sidebar profile link to navigate to the channel page.
+      document.getElementById("sidebarProfileLink").href = "channel.html?user=" + encodeURIComponent(channel);
     }
 
     async function loadProfilePicture(channel) {
@@ -300,7 +470,7 @@
           </div>
           <div class="card ideas" style="grid-area: grow;">
             <h3>Ready to grow?</h3>
-            <p style="font-size: 12px; color: #ccc;">
+            <p style="font-size: 12px;">
               Want to grow your channel right now? Click on this link to start publishing on StatTube!
               <a href="https://www.youtube.com/watch?v=FLh31OnhI4Y&ab_channel=StatWars" class="grow-link" target="_blank">Start Growing</a>
             </p>
@@ -308,7 +478,7 @@
           <div class="card insider" style="grid-area: update;">
             <h3>New StatTube update!</h3>
             <p>Check out the latest features and improvements now available on StatTube Studio.</p>
-            <p style="font-size: 12px; color: #ccc;">
+            <p style="font-size: 12px;">
               For 1.31, StatTube Studio is revamping with a new look! New features, such as the dashboard and Content pages, were released!
             </p>
           </div>
@@ -507,28 +677,141 @@
       }
     }
 
+    // Logout function to remove connection and clear local storage.
+    async function logout() {
+      const channel = localStorage.getItem("loggedInChannel");
+      if (channel) {
+        const connectionRef = ref(db, `youtubeconnections/${channel}`);
+        await set(connectionRef, null);
+      }
+      localStorage.removeItem("loggedInChannel");
+      localStorage.removeItem("connectionCode");
+      document.getElementById('studioUI').style.display = 'none';
+      document.getElementById('loginContainer').style.display = 'block';
+      loadChannels();
+    }
+
+    // Reveal active connection code: show a modal with the code, a copy button, and instructions.
+    function revealCode() {
+      const code = localStorage.getItem("connectionCode");
+      if (!code) {
+        alert("No active connection code found.");
+        return;
+      }
+      const codeModal = document.getElementById("codeModal");
+      document.getElementById("codeDisplay").textContent = code;
+      codeModal.style.display = "flex";
+    }
+
+    // Function to copy the code to clipboard.
+    function copyCode() {
+      const code = document.getElementById("codeDisplay").textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Code copied to clipboard!");
+      }).catch(() => {
+        alert("Failed to copy code.");
+      });
+    }
+
+    // Close the code modal when clicking outside its content.
+    function closeCodeModal() {
+      document.getElementById("codeModal").style.display = "none";
+    }
+
     window.onload = () => {
       checkLogin();
       window.createConnection = createConnection;
       window.showChannelDashboard = showChannelDashboard;
       window.showLiveSubCount = showLiveSubCount;
       window.showYourContent = showYourContent;
+      window.logout = logout;
+      window.toggleTheme = toggleTheme;
+      window.toggleProfileDropdown = toggleProfileDropdown;
     };
+
+    // Expose code modal functions to global scope.
+    window.revealCode = revealCode;
+    window.copyCode = copyCode;
+    window.closeCodeModal = closeCodeModal;
   </script>
 </head>
 <body>
+  <!-- Code Modal -->
+  <div id="codeModal" onclick="closeCodeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <h3>Your Code:</h3>
+      <div id="codeDisplay" class="code-box"></div>
+      <button class="copy-btn" onclick="copyCode()">Copy Code</button>
+      <p class="instructions">
+        Type this code with <strong>!connect</strong> to log in to your StatTube™️ account. Never share this code with anyone—you might lose control of your account.
+      </p>
+    </div>
+  </div>
+
   <div id="studioUI" style="display: none;">
     <div id="topbar">
       <img src="studiologo.png" alt="Studio Logo" class="studio-logo" />
       <div class="search-bar">
         <input type="text" placeholder="this does nothing yet :(" />
       </div>
-      <img id="profilePicTop" src="" alt="Profile Picture" class="profile-icon-top" />
+      <div class="profile-container">
+        <img id="profilePicTop" src="" alt="Profile Picture" class="profile-icon-top" onclick="toggleProfileDropdown()"/>
+        <div id="profileDropdown">
+          <div class="dropdown-item" onclick="window.location.href='https://stat-tube.xyz/'">
+            <span class="dropdown-icon">
+              <!-- Home Icon SVG -->
+              <svg viewBox="0 0 24 24" fill="var(--dropdown-text)" width="20" height="20">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+              </svg>
+            </span>
+            <span>StatTube</span>
+          </div>
+          <div class="dropdown-item" onclick="logout()">
+            <span class="dropdown-icon">
+              <!-- Logout Icon SVG -->
+              <svg viewBox="0 0 24 24" fill="var(--dropdown-text)" width="20" height="20">
+                <path d="M16 13v-2H7V8l-5 4 5 4v-3zM20 3h-8v2h8v14h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+              </svg>
+            </span>
+            <span>Log Out</span>
+          </div>
+          <div class="dropdown-item" onclick="toggleTheme()">
+            <span class="dropdown-icon">
+              <!-- Theme Icon SVG -->
+              <svg viewBox="0 0 24 24" fill="var(--dropdown-text)" width="20" height="20">
+                <path d="M12 3C9.243 3 7 5.243 7 8c0 2.757 2.243 5 5 5s5-2.243 5-5c0-2.757-2.243-5-5-5zm0 8c-1.654 0-3-1.346-3-3s1.346-3 3-3 3 1.346 3 3-1.346 3-3 3zM4 13v2h4v-2H4zm10 0v2h4v-2h-4zM4 17v2h4v-2H4zm10 0v2h4v-2h-4z"/>
+              </svg>
+            </span>
+            <span id="themeText">Switch Themes (Current: Dark Mode)</span>
+          </div>
+          <div class="dropdown-item" onclick="revealCode()">
+            <span class="dropdown-icon">
+              <!-- Code Icon SVG -->
+              <svg viewBox="0 0 24 24" fill="var(--dropdown-text)" width="20" height="20">
+                <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v8z"/>
+              </svg>
+            </span>
+            <span>Reveal your code</span>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="dashboardContainer">
       <div id="sidebar">
-        <img id="profilePicSide" src="" alt="Profile Picture" />
-        <h2 id="channelName"></h2>
+        <div class="sidebar-profile-wrapper">
+          <a id="sidebarProfileLink" href="#">
+            <div class="profile-pic-wrapper">
+              <img id="profilePicSide" src="default-pfp.jfif" alt="Profile Picture" />
+              <div class="overlay">
+                <!-- Icon representing "go to your channel" -->
+                <svg class="overlay-icon" viewBox="0 0 24 24">
+                  <path d="M12 2a10 10 0 110 20 10 10 0 010-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+              </div>
+            </div>
+          </a>
+          <h2 id="channelName">Channel Name</h2>
+        </div>
         <div class="tab" onclick="showChannelDashboard()">Dashboard</div>
         <div class="tab" onclick="showLiveSubCount()">Subscriber Count (LIVE) 🔴</div>
         <div class="tab" onclick="showYourContent()">Your Content</div>
